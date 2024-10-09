@@ -4,6 +4,7 @@ const Category = require('../model/Category')
 const Section = require('../model/Section')
 const SubSection = require('../model/SubSection')
 const { uploadImageToCloudinary } = require('../utils/fileUpload')
+const CourseProgress = require('../model/CourseProgress')
 const convertSecondsToDuration = require('../utils/secToDuration')
 require('dotenv').config()
 //create course
@@ -274,73 +275,77 @@ exports.getCourseDetails = async (req, res) => {
 //get full course Details
 exports.getFullCourseDetails = async (req, res) => {
     try {
-        const { courseId } = req.body
-        const userId = req.user.id
-
-        const courseDetails = await Course.findOne({
-            _id: courseId,
+      const { courseId } = req.body
+      const userId = req.user.id
+      const courseDetails = await Course.findOne({
+        _id: courseId,
+      })
+        .populate({
+          path: "instructor",
+          populate: {
+            path: "additionalDetails",
+          },
         })
-            .populate({
-                path: "instructor",
-                populate: {
-                    path: "additionalDetails",
-                },
-            })
-            .populate("category")
-            .populate("ratingAndReviews")
-            .populate({
-                path: "courseContent",
-                populate: {
-                    path: "subSection",
-                },
-            })
-            .exec()
-
-        let courseProgressCount = await CourseProgress.findOne({
-            courseID: courseId,
-            userId: userId,
+        .populate("category")
+        .populate("ratingAndReviews")
+        .populate({
+          path: "courseContent",
+          populate: {
+            path: "subSection",
+          },
         })
-
-        console.log("courseProgressCount: ", courseProgressCount)
-
-        if (!courseDetails) {
-            return res.status(400).json({
-                success: false,
-                message: `Could not find course with id: ${courseId}`
-            })
-        }
-
-        let totalDurationInSeconds = 0
-        courseDetails.courseContent.forEach((content) => {
-            content.subSection.forEach((subSection) => {
-                const timeDurationInSeconds = parseInt(subSection.timeDuration)
-                totalDurationInSeconds += timeDurationInSeconds
-            })
+        .exec()
+  
+      let courseProgressCount = await CourseProgress.findOne({
+        courseID: courseId,
+        userId: userId,
+      })
+  
+      console.log("courseProgressCount : ", courseProgressCount)
+  
+      if (!courseDetails) {
+        return res.status(400).json({
+          success: false,
+          message: `Could not find course with id: ${courseId}`,
         })
-
-        const totalDuration = convertSecondsToDuration(totalDurationInSeconds)
-
-        return res.status(200).json({
-            success: true,
-            data: {
-                courseDetails,
-                totalDuration,
-                completedVideos: courseProgressCount?.completedVideos
-                    ? courseProgressCount?.completedVideos
-                    : [],
-            },
+      }
+  
+      // if (courseDetails.status === "Draft") {
+      //   return res.status(403).json({
+      //     success: false,
+      //     message: `Accessing a draft course is forbidden`,
+      //   });
+      // }
+  
+      let totalDurationInSeconds = 0
+      courseDetails.courseContent.forEach((content) => {
+        content.subSection.forEach((subSection) => {
+          const timeDurationInSeconds = parseInt(subSection.timeDuration)
+          totalDurationInSeconds += timeDurationInSeconds
         })
-
-
-    } catch (err) {
-        console.log('get course full details backend error')
-        return res.status(500).json({
-            success: false,
-            message: err.message
-        })
+      })
+  
+      const totalDuration = convertSecondsToDuration(totalDurationInSeconds)
+  
+      return res.status(200).json({
+        success: true,
+        data: {
+          courseDetails,
+          totalDuration,
+          completedVideos: courseProgressCount?.completedVideos
+            ? courseProgressCount?.completedVideos
+            : [],
+        },
+      })
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: error.message,
+      })
     }
-}
-
+  }
+  
+  
 //get instructor courses
 exports.getInstructorCourses = async (req, res) => {
     try {

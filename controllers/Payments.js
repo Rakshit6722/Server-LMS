@@ -123,7 +123,7 @@ exports.sendPaymentSuccessEmail = async (req, res) => {
 
     const userId = req.user.id
 
-    if (!orderId || !parymentId || !amount || !userId) {
+    if (!orderId || !paymentId || !amount || !userId) {
         return res.status(400).json({
             success: false,
             message: "Please provide all the details"
