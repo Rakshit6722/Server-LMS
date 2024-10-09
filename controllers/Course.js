@@ -140,16 +140,16 @@ exports.editCourse = async (req, res) => {
         //updates only the fields that are present in the req body
         for (const key in updates) {
             if (updates.hasOwnProperty(key)) {
-              if (key === "tag" || key === "instructions") {
-                course[key] = JSON.parse(updates[key])
-              } else {
-                course[key] = updates[key]
-              }
+                if (key === "tag" || key === "instructions") {
+                    course[key] = JSON.parse(updates[key])
+                } else {
+                    course[key] = updates[key]
+                }
             }
-          }
-      
+        }
+
         await course.save()
-      
+
         const updatedCourse = await Course.findOne({ _id: courseId, }).populate({
             path: "instructor",
             populate: {
@@ -234,8 +234,8 @@ exports.getCourseDetails = async (req, res) => {
                 },
             })
             .exec()
-            
-        console.log("course details:",courseDetails)
+
+        console.log("course details:", courseDetails)
         if (!courseDetails) {
             return res.status(400).json({
                 success: false,
@@ -371,45 +371,51 @@ exports.getInstructorCourses = async (req, res) => {
 //delete the course
 exports.deleteCourse = async (req, res) => {
     try {
-        const { courseId } = req.body
-
-        const course = Course.findById(courseId)
-        if (!course) {
-            return res.status(404).json({
-                success: false,
-                message: "Course not found"
-            })
-        }
-
-        const studentsEnrolled = course.studentsEnrolled
-        for (const studentId of studentsEnrolled) {
-            await User.findByIdAndUpdate(studentId, { $pull: { courses: courseId } })
-        }
-
-        const courseSections = course.courseContent
-        for (const sectionId of courseSections) {
-            const section = Section.findById(sectionId)
-            if (section) {
-                const subSection = section.subSection
-                for (const subSectionId of subSection) {
-                    await SubSection.findByIdAndDelete(subSectionId)
-                }
-            }
-            await Section.findByIdAndDelete(sectionId)
-        }
-
-        await Course.findByIdAndDelete(courseId)
-
-        return res.status(200).json({
-            success: true,
-            message: "Course deleted successfully",
+      const { courseId } = req.body
+  
+      // Find the course
+      const course = await Course.findById(courseId)
+      if (!course) {
+        return res.status(404).json({ message: "Course not found" })
+      }
+  
+      // Unenroll students from the course
+      const studentsEnrolled = course.studentsEnrolled || []
+      for (const studentId of studentsEnrolled) {
+        await User.findByIdAndUpdate(studentId, {
+          $pull: { courses: courseId },
         })
-    } catch (err) {
-        console.log("Delete course...", err)
-        return res.status(500).json({
-            success: false,
-            message: "Server error",
-            err: err.message
-        })
+      }
+  
+      // Delete sections and sub-sections
+      const courseSections = course.courseContent
+      for (const sectionId of courseSections) {
+        // Delete sub-sections of the section
+        const section = await Section.findById(sectionId)
+        if (section) {
+          const subSections = section.subSection
+          for (const subSectionId of subSections) {
+            await SubSection.findByIdAndDelete(subSectionId)
+          }
+        }
+  
+        // Delete the section
+        await Section.findByIdAndDelete(sectionId)
+      }
+  
+      // Delete the course
+      await Course.findByIdAndDelete(courseId)
+  
+      return res.status(200).json({
+        success: true,
+        message: "Course deleted successfully",
+      })
+    } catch (error) {
+      console.error(error)
+      return res.status(500).json({
+        success: false,
+        message: "Server error",
+        error: error.message,
+      })
     }
-}
+  }
