@@ -8,7 +8,7 @@ exports.resetPasswordToken = async (req, res) => {
         const email = req.body.email;
         const user = await User.findOne({ email: email });
         if (!user) {
-            return res.json({
+            return res.status(401).json({
                 success: false,
                 message: `This Email: ${email} is not Registered With Us Enter a Valid Email `,
             });
@@ -52,14 +52,14 @@ exports.resetPassword = async (req, res) => {
         const { password, confirmPassword, token } = req.body;
 
         if (confirmPassword !== password) {
-            return res.json({
+            return res.status(400).json({
                 success: false,
                 message: "Password and Confirm Password Does not Match",
             });
         }
         const userDetails = await User.findOne({ token: token });
         if (!userDetails) {
-            return res.json({
+            return res.status(401).json({
                 success: false,
                 message: "Token is Invalid",
             });
