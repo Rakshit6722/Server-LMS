@@ -16,7 +16,7 @@ const dotenv = require("dotenv");
 
 
 dotenv.config()
-const PORT = 4000
+const PORT = 5050
 
 dbConnect()
 

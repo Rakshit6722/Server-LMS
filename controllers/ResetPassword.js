@@ -26,6 +26,8 @@ exports.resetPasswordToken = async (req, res) => {
         console.log("DETAILS", updatedDetails);
 
         const url = `https://learningmanagementsystem12321.netlify.app/update-password/${token}`;
+        // const url = `http://localhost:5173/update-password/${token}`;
+       
 
         await mailSender(
             email,
